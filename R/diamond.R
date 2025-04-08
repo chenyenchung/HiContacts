@@ -75,7 +75,7 @@ getDiamondInsulation <- function(
     fbins$min <- seq_along(fbins) %in% mins
     fbins$prominence <- NA
     
-    fbins$prominence <- sapply(
+    fbins$prominence[fbins$min] <- sapply(
         mins, function(min_pos) {
             # Find closest maximum before this minimum
             left_maxs <- maxs[maxs < min_pos]
