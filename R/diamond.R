@@ -66,11 +66,42 @@ getDiamondInsulation <- function(
     message( "Annotating diamond score prominence for each window..." )
     mins <- which(diff(sign(diff(fbins$insulation)))==+2)+1
     maxs <- which(diff(sign(diff(fbins$insulation)))==-2)+1
-    if (length(maxs) < length(mins)) maxs[[length(maxs)+1]] <- length(fbins)
-    if (length(maxs) > length(mins)) maxs <- utils::tail(maxs, -1)
+
+    # It is not safe to assume that mins and maxs vectors can only differ by 1
+    # in a noisy environment.
+    
+    # if (length(maxs) < length(mins)) maxs[[length(maxs)+1]] <- length(fbins)
+    # if (length(maxs) > length(mins)) maxs <- utils::tail(maxs, -1)
     fbins$min <- seq_along(fbins) %in% mins
     fbins$prominence <- NA
-    fbins$prominence[fbins$min] <- -{fbins$insulation[fbins$min] - fbins$insulation[seq_along(fbins) %in% maxs]}
+    
+    fbins$prominence <- sapply(
+        mins, function(min_pos) {
+            # Find closest maximum before this minimum
+            left_maxs <- maxs[maxs < min_pos]
+            # Find closest maximum after this minimum
+            right_maxs <- maxs[maxs > min_pos]
+
+            # Only calculate prominence if we have maxima on both sides
+            if (length(left_maxs) > 0 && length(right_maxs) > 0) {
+                left_max <- max(left_maxs)
+                right_max <- min(right_maxs)
+                
+                # Calculate prominence as depth relative to lower of the two surrounding peaks
+                left_height <- fbins$insulation[left_max]
+                right_height <- fbins$insulation[right_max]
+                reference_height <- min(left_height, right_height)
+                
+                # Prominence is how far the minimum dips below the reference height
+                out <- -(fbins$insulation[min_pos] - reference_height)
+            } else {
+                out <- NA
+            }
+        }
+    )
+
+    # Update min indicator to only mark valid minima
+    fbins$min[mins[is.na(fbins$prominence[mins])]] <- FALSE
     
     ## -- Return initial HiCExperiment object with insulation in metadata
     metadata(x)$insulation <- fbins
