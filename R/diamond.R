@@ -61,6 +61,8 @@ getDiamondInsulation <- function(
     fbins$score <- scores
     fbins$insulation <- log2( scores / mean(scores) )
     fbins <- fbins[!is.na(fbins$insulation)]
+    fbins <- fbins[!is.nan(fbins$insulation)]
+    fbins <- fbins[is.finite(fbins$insulation)]
 
     # - Annotate boundaries
     message( "Annotating diamond score prominence for each window..." )
